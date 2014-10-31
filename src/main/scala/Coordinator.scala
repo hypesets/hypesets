@@ -36,6 +36,20 @@ class Coordinator extends Actor with ActorLogging {
     }
   }
   
+  def processEstimation(key: String, value: Double) = {
+    val estimated = estimationState.estimated + (key -> value)
+
+    estimationState = estimationState match {
+      case Coordinator.EstimationState(_, 1, Some(recipient)) => {
+        recipient ! Coordinator.EstimationResult(estimated)
+
+        Coordinator.EstimationState(Map(), 0, None)
+      }
+      case Coordinator.EstimationState(_, toEstimate, recipient) =>
+        Coordinator.EstimationState(estimated, toEstimate - 1, recipient)
+    }
+  }
+  
   def receive = {
     case Coordinator.Add(key, value) => {
       val actor = getSet(key)
@@ -43,18 +57,6 @@ class Coordinator extends Actor with ActorLogging {
       actor ! HLLSet.Add(value)
     }
     case Coordinator.Estimate => estimate(sender)
-    case HLLSet.EstimatedValue(value, key) => {
-      val estimated = estimationState.estimated + (key -> value)
-      
-      estimationState = estimationState match {
-        case Coordinator.EstimationState(_, 1, Some(recipient)) => {
-          recipient ! Coordinator.EstimationResult(estimated)
-          
-          Coordinator.EstimationState(Map(), 0, None)
-        }
-        case Coordinator.EstimationState(_, toEstimate, recipient) =>
-          Coordinator.EstimationState(estimated, toEstimate - 1, recipient)
-      }
-    }
+    case HLLSet.EstimatedValue(value, key) => processEstimation(key, value)
   }
 }
