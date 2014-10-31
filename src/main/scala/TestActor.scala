@@ -10,14 +10,14 @@ object TestActor {
 class TestActor extends Actor {
   import scala.concurrent.ExecutionContext.Implicits.global
   
-  val testSet = context.actorOf(Props[Coordinator], "consumer")
+  val testSet = context.actorOf(Props[SetGroup], "consumer")
 
   override def preStart(): Unit = {
     val values = List(("a", "a"), ("b", "a"), ("a", "a"), ("b", "b"))
     
     for ((key, value) <- values) {
-      testSet ! Coordinator.Add(key, value)
-      testSet ! Coordinator.Estimate
+      testSet ! SetGroup.Add(key, value)
+      testSet ! SetGroup.Estimate
     }
     
     context.system.scheduler.scheduleOnce(1.second, self, TestActor.Estimate)
@@ -25,8 +25,8 @@ class TestActor extends Actor {
   }
   
   def receive = {
-    case TestActor.Estimate => testSet ! Coordinator.Estimate
+    case TestActor.Estimate => testSet ! SetGroup.Estimate
     case TestActor.Stop => context.stop(self)
-    case Coordinator.EstimationResult(result) => println(result)
+    case SetGroup.EstimationResult(result) => println(result)
   }
 }

@@ -1,62 +1,31 @@
-import com.twitter.algebird.HLL
 import akka.actor.Actor
-import akka.actor.ActorRef
 import akka.actor.Props
-import akka.actor.ActorLogging
+import java.util.Properties
+import java.util.Date
+import java.text.SimpleDateFormat
 
-object Coordinator {
-  case class Add(key: String, value: String)
-  case class EstimationState(estimated: Map[String, Double], toEstimate: Int, recipient: Option[ActorRef])
-  case object Estimate
-  case object AlreadyEstimating
-  case class EstimationResult(result: Map[String, Double])
-}
-
-class Coordinator extends Actor with ActorLogging {
-  var sets = Map[String, ActorRef]()
-  var estimationState = Coordinator.EstimationState(Map(), 0, None)
+class Coordinator(properties: Properties) extends Actor {
   
-  def estimate(sender: ActorRef) = estimationState.recipient match {
-    case Some(_) => sender ! Coordinator.AlreadyEstimating
-    case None if sets.size == 0 => Coordinator.EstimationResult(Map())
-    case None => {
-      estimationState = Coordinator.EstimationState(Map(), sets.size, Some(sender))
-      
-      for ((key, actor) <- sets) actor ! HLLSet.Estimate(key)
-    }
-  }
+  val setGroup = context.actorOf(Props[SetGroup], "setGroup")
+  val dateFormat = new SimpleDateFormat("YY/MM/dd")
   
-  def getSet(key: String): ActorRef = sets.get(key) match {
-    case Some(actor) => actor
-    case None => {
-      val actor = context.actorOf(Props[HLLSet], s"set-$key")
-
-      sets = sets + (key -> actor)
-      actor
-    }
-  }
-  
-  def processEstimation(key: String, value: Double) = {
-    val estimated = estimationState.estimated + (key -> value)
-
-    estimationState = estimationState match {
-      case Coordinator.EstimationState(_, 1, Some(recipient)) => {
-        recipient ! Coordinator.EstimationResult(estimated)
-
-        Coordinator.EstimationState(Map(), 0, None)
-      }
-      case Coordinator.EstimationState(_, toEstimate, recipient) =>
-        Coordinator.EstimationState(estimated, toEstimate - 1, recipient)
-    }
+  override def preStart = {
+    context.actorOf(Props(classOf[Consumer], properties, self))
   }
   
   def receive = {
-    case Coordinator.Add(key, value) => {
-      val actor = getSet(key)
+    case Consumer.Message(message) => {
+      val appid = message.get("appid").get
+      val countryCode = message.get("country_code").get
       
-      actor ! HLLSet.Add(value)
+      val date = new Date(message.get("timestamp").get.asInstanceOf[Int] * 1000)
+      val day = dateFormat.format(date)
+      
+      val key = s"$day-$appid-$countryCode"
+      
+      val deviceId = message.get("device_id").get.asInstanceOf[String]
+      
+      setGroup ! SetGroup.Add(key, deviceId)
     }
-    case Coordinator.Estimate => estimate(sender)
-    case HLLSet.EstimatedValue(value, key) => processEstimation(key, value)
   }
 }
