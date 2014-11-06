@@ -1,3 +1,5 @@
+package hll
+
 import akka.actor.Actor
 import akka.actor.Props
 import java.util.Properties

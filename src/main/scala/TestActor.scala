@@ -1,3 +1,5 @@
+package hll
+
 import akka.actor.Actor
 import scala.concurrent.duration._
 import akka.actor.Props

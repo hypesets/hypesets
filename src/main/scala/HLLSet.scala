@@ -1,3 +1,5 @@
+package hll
+
 import com.twitter.algebird.HyperLogLogMonoid
 import akka.actor.Actor
 import com.twitter.algebird.HLL
