@@ -4,10 +4,9 @@ import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.ActorLogging
 import akka.actor.actorRef2Scala
-import hll.HLLSet
 
 object SetGroup {
-  case class Add(key: String, value: String)
+  case class Add(setKey: String, element: String)
   case class EstimationState(estimated: Map[String, Double], toEstimate: Int, recipient: Option[ActorRef])
   case object Estimate
   case object AlreadyEstimating
@@ -20,7 +19,7 @@ class SetGroup extends Actor with ActorLogging {
   
   def estimate(sender: ActorRef) = estimationState.recipient match {
     case Some(_) => sender ! SetGroup.AlreadyEstimating
-    case None if sets.size == 0 => SetGroup.EstimationResult(Map())
+    case None if sets.size == 0 => sender ! SetGroup.EstimationResult(Map())
     case None => {
       estimationState = SetGroup.EstimationState(Map(), sets.size, Some(sender))
       
@@ -53,10 +52,10 @@ class SetGroup extends Actor with ActorLogging {
   }
   
   def receive = {
-    case SetGroup.Add(key, value) => {
-      val actor = getSet(key)
+    case SetGroup.Add(setKey, element) => {
+      val actor = getSet(setKey)
       
-      actor ! HLLSet.Add(value)
+      actor ! HLLSet.Add(element)
     }
     case SetGroup.Estimate => estimate(sender)
     case HLLSet.EstimatedValue(value, key) => processEstimation(key, value)

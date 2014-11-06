@@ -6,7 +6,6 @@ import akka.testkit.TestKit
 import akka.actor.Props
 import akka.testkit.ImplicitSender
 import akka.actor.actorRef2Scala
-import hll.HLLSet
 
 class HLLSetSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
   with WordSpecLike with Matchers with BeforeAndAfterAll {
@@ -39,7 +38,7 @@ class HLLSetSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSen
   "Set with many elements" in {
     val hllSet = createHLLSet
 
-    for (element <- 0 until 1000) hllSet ! HLLSet.Add(element.toString)
+    for (element <- 0 to 1000) hllSet ! HLLSet.Add(element.toString)
     hllSet ! HLLSet.Estimate("set key")
 
     expectMsgPF() {
