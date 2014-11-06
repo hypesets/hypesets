@@ -5,6 +5,9 @@ import akka.actor.Props
 import java.util.Properties
 import java.util.Date
 import java.text.SimpleDateFormat
+import hll.Consumer
+import hll.SetGroup
+import akka.actor.actorRef2Scala
 
 class Coordinator(properties: Properties) extends Actor {
   

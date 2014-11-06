@@ -1,11 +1,12 @@
 package hll
 
 import org.scalatest._
-import akka.testkit.TestActorRef
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import akka.actor.Props
 import akka.testkit.ImplicitSender
+import akka.actor.actorRef2Scala
+import hll.HLLSet
 
 class HLLSetSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
   with WordSpecLike with Matchers with BeforeAndAfterAll {

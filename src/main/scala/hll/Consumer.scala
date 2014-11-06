@@ -10,6 +10,7 @@ import kafka.message.MessageAndMetadata
 import org.msgpack.MessagePack
 import scala.collection.mutable.HashMap
 import scala.collection.JavaConversions._
+import akka.actor.actorRef2Scala
 
 object Consumer {
   case class Message(message: HashMap[String, Any])

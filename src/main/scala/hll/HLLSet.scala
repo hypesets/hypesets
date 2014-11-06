@@ -2,8 +2,8 @@ package hll
 
 import com.twitter.algebird.HyperLogLogMonoid
 import akka.actor.Actor
-import com.twitter.algebird.HLL
 import akka.actor.ActorLogging
+import akka.actor.actorRef2Scala
 
 object HLLSet {
   case class Add(value: String)

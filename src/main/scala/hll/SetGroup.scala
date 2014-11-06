@@ -1,10 +1,10 @@
 package hll
-
-import com.twitter.algebird.HLL
 import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.Props
 import akka.actor.ActorLogging
+import akka.actor.actorRef2Scala
+import hll.HLLSet
 
 object SetGroup {
   case class Add(key: String, value: String)
