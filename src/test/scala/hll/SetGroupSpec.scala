@@ -61,16 +61,27 @@ class SetGroupSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
 
   "Estimate only matching sets" in {
     val setGroup = createSetGroup
-    
+
     setGroup ! SetGroup.Add("setA", "a")
     setGroup ! SetGroup.Add("setA", "b")
     setGroup ! SetGroup.Add("setB", "a")
-    
+
     setGroup ! SetGroup.Estimate(".{3}A")
-    
+
     expectMsgPF() {
       case SetGroup.EstimationResult(result) if result == Map("setA" -> 2.0) => true
     }
   }
 
+  "Return empty map when there are no matching sets" in {
+    val setGroup = createSetGroup
+
+    setGroup ! SetGroup.Add("setA", "a")
+
+    setGroup ! SetGroup.Estimate("21")
+
+    expectMsgPF() {
+      case SetGroup.EstimationResult(result) if result == Map() => true
+    }
+  }
 }

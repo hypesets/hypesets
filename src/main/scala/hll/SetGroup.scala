@@ -29,12 +29,16 @@ class SetGroup extends Actor with ActorLogging {
       }
       
       val pending = sets.filterKeys(keyFilter)
+      val pendingSize = pending.size
       
-      estimationState = SetGroup.EstimationState(Map(), pending.size, Some(sender))
+      if ( pending.size == 0) {
+        sender ! SetGroup.EstimationResult(Map())
+      } else {
+        estimationState = SetGroup.EstimationState(Map(), pending.size, Some(sender))
 
-      for ((key, actor) <- sets.filterKeys(keyFilter)) {
-        println(s"Sending estimate message: $key -> $actor")
-        actor ! HLLSet.Estimate(key)
+        for ((key, actor) <- sets.filterKeys(keyFilter)) {
+          actor ! HLLSet.Estimate(key)
+        }
       }
     }
   }
