@@ -23,7 +23,7 @@ class SetGroupSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
   "Estimation of empty empty set group" in {
     val setGroup = createSetGroup
 
-    setGroup ! SetGroup.Estimate
+    setGroup ! SetGroup.Estimate(".+")
 
     expectMsg(SetGroup.EstimationResult(Map()))
   }
@@ -35,7 +35,7 @@ class SetGroupSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
     setGroup ! SetGroup.Add("setB", "a")
     setGroup ! SetGroup.Add("setA", "b")
 
-    setGroup ! SetGroup.Estimate
+    setGroup ! SetGroup.Estimate(".+")
 
     def expected(map: Map[String, Double]) =
       map.get("setA").get == 2.0 && map.get("setB").get == 1.0
@@ -47,13 +47,30 @@ class SetGroupSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitS
 
   "Return already estimating when estimation in progress (may fail randomly)" in {
     val setGroup = createSetGroup
-    
+
     for (i <- 0 to 1000) setGroup ! SetGroup.Add(s"set$i", i.toString)
-    
-    setGroup ! SetGroup.Estimate
-    setGroup ! SetGroup.Estimate
-    
+
+    setGroup ! SetGroup.Estimate(".+")
+    setGroup ! SetGroup.Estimate(".+")
+
     expectMsg(SetGroup.AlreadyEstimating)
+    expectMsgPF() {
+      case SetGroup.EstimationResult(_) => true
+    }
+  }
+
+  "Estimate only matching sets" in {
+    val setGroup = createSetGroup
+    
+    setGroup ! SetGroup.Add("setA", "a")
+    setGroup ! SetGroup.Add("setA", "b")
+    setGroup ! SetGroup.Add("setB", "a")
+    
+    setGroup ! SetGroup.Estimate(".{3}A")
+    
+    expectMsgPF() {
+      case SetGroup.EstimationResult(result) if result == Map("setA" -> 2.0) => true
+    }
   }
 
 }

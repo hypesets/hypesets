@@ -57,6 +57,14 @@ class ConnectionSpec(_system: ActorSystem) extends TestKit(_system) with Implici
     }
   }
   
+  "estimates matching sets" in {
+    val connection = createConnection(setGroup)
+    
+    connection ! Tcp.Received(ByteString("ADD my_set a\nADD my_set2 a\n ADD my_set2 b\nESTIMATE my_set\\d+\n"))
+    
+    expectMsg(Write(ByteString("SUCCESS\nmy_set2,2\n\n")))
+  }
+  
   "handles multiple commands" in {
     val connection = createConnection(setGroup)
     
