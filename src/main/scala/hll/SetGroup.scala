@@ -14,8 +14,12 @@ object SetGroup {
 }
 
 class SetGroup extends Actor with ActorLogging {
-  var sets = Map[String, ActorRef]()
+  
+  case object Tick
+  
+  var sets = Map[String, SetReference]()
   var estimationState = SetGroup.EstimationState(Map(), 0, None)
+  var ticks = 0L
 
   def estimate(sender: ActorRef, selector: String) = estimationState.recipient match {
     case Some(_) => sender ! SetGroup.AlreadyEstimating
@@ -36,19 +40,20 @@ class SetGroup extends Actor with ActorLogging {
       } else {
         estimationState = SetGroup.EstimationState(Map(), pending.size, Some(sender))
 
-        for ((key, actor) <- sets.filterKeys(keyFilter)) {
-          actor ! HLLSet.Estimate(key)
+        for ((key, reference) <- sets.filterKeys(keyFilter)) {
+          reference.actor ! HLLSet.Estimate(key)
         }
       }
     }
   }
 
   def getSet(key: String): ActorRef = sets.get(key) match {
-    case Some(actor) => actor
+    case Some(reference) => reference.actor
     case None => {
       val actor = context.actorOf(Props[HLLSet], s"set-$key")
+      val reference = SetReference(ticks, actor)
 
-      sets = sets + (key -> actor)
+      sets = sets + (key -> reference)
       actor
     }
   }
@@ -75,5 +80,6 @@ class SetGroup extends Actor with ActorLogging {
     }
     case SetGroup.Estimate(selector) => estimate(sender, selector)
     case HLLSet.EstimatedValue(value, key) => processEstimation(key, value)
+    case Tick => ticks += 1
   }
 }
