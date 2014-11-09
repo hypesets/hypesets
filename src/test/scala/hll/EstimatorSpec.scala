@@ -24,37 +24,15 @@ class EstimatorSpec(_system: ActorSystem) extends TestKit(_system) with Implicit
 
   def this() = this(ActorSystem("MySpec"))
   
-  override def beforeAll {
-    database = Some(createDatabase)
-  }
-
+  val databaseHelper = new DatabaseHelper("EstimatorSpec")
+  
   override def afterAll {
     TestKit.shutdownActorSystem(system)
-    database.map(_.close)
+    databaseHelper.close
   }
   
   override def beforeEach {
-    database.map(_.truncate(null, false))
-  }
-  
-  var database: Option[Database] = None
-  
-  def createDatabase = {
-    val envConfig = new EnvironmentConfig();
-    envConfig.setAllowCreate(true);
-    var dbEnvironment = new Environment(new File("db"), envConfig)
-    
-    // Open the database. Create it if it does not already exist.
-    var dbConfig = new DatabaseConfig();
-    dbConfig.setAllowCreate(true);
-    dbEnvironment.openDatabase(null, "sampleDatabase", dbConfig); 
-  }
-  
-  def saveSet(name: String, set: HLL) = {
-    val key = new DatabaseEntry(name.getBytes("UTF-8")) 
-    val data = new DatabaseEntry(HyperLogLog.toBytes(set))
-    
-    database.map(_.put(null, key, data))
+    databaseHelper.truncate
   }
   
   def runEstimator(database: Database, recipient: ActorRef, start: String, stop: String) {
@@ -67,9 +45,9 @@ class EstimatorSpec(_system: ActorSystem) extends TestKit(_system) with Implicit
     val monoid = new HyperLogLogMonoid(12)
     val set = monoid.zero
     
-    saveSet("myKey", set)
+    databaseHelper.saveSet("myKey", set)
     
-    runEstimator(database.get, self, "myKey", "myKey")
+    runEstimator(databaseHelper.getDatabase, self, "myKey", "myKey")
     
     expectMsg(Estimator.Estimation("myKey", 0.0))
     expectMsg(Estimator.Done)
@@ -79,15 +57,15 @@ class EstimatorSpec(_system: ActorSystem) extends TestKit(_system) with Implicit
     val hll = new HyperLogLogMonoid(12)
     
     val set1 = hll.zero
-    saveSet("set1", set1)
+    databaseHelper.saveSet("set1", set1)
     val set2 = hll.plus(set1, hll("a".getBytes))
-    saveSet("set12", set2)
+    databaseHelper.saveSet("set12", set2)
     val set3 = hll.plus(set2, hll("b".getBytes))
-    saveSet("set12 1", set3)
+    databaseHelper.saveSet("set12 1", set3)
     val set4 = hll.plus(set3, hll("c".getBytes))
-    saveSet("set13 1", set4)
+    databaseHelper.saveSet("set13 1", set4)
     
-    runEstimator(database.get, self, "set12", "set12xxx")
+    runEstimator(databaseHelper.getDatabase, self, "set12", "set12xxx")
     
     expectMsg(Estimator.Estimation("set12", 1.0))
     expectMsg(Estimator.Estimation("set12 1", 2.0))
