@@ -25,12 +25,17 @@ class Estimator(database: Database, recipient: ActorRef, start: String, stop: St
   val foundKey = new DatabaseEntry
   val foundData = new DatabaseEntry
 
-  cursor.getSearchKeyRange(startKey, new DatabaseEntry, LockMode.DEFAULT)
-  cursor.getCurrent(foundKey, foundData, LockMode.DEFAULT)
-  
+  cursor.getSearchKeyRange(startKey, foundData, LockMode.DEFAULT)
+
+  try {
+    cursor.getCurrent(foundKey, foundData, LockMode.DEFAULT)
+  } catch {
+    case e: com.sleepycat.je.DatabaseException => finish
+  }
+
   def finish {
     cursor.close
-    
+
     recipient ! Estimator.Done
   }
 
@@ -47,8 +52,8 @@ class Estimator(database: Database, recipient: ActorRef, start: String, stop: St
       } else finish
     } else finish
   }
-  
+
   def receive = {
-    case Estimator.Iterate => iterate
+    case Estimator.Iterate if foundKey.getData != null => iterate
   }
 }

@@ -73,6 +73,8 @@ class EstimatorSpec(_system: ActorSystem) extends TestKit(_system) with Implicit
   }
   
   "sends done when none keys found" in {
+    runEstimator(databaseHelper.getDatabase, self, "someKey", "someKey")
     
+    expectMsg(Estimator.Done)
   } 
 }
