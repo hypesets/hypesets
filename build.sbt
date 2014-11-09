@@ -6,6 +6,8 @@ scalaVersion := "2.10.4"
 
 resolvers += "Akka Snapshot Repository" at "http://repo.akka.io/snapshots/"
 
+resolvers += "Oracle" at "http://download.oracle.com/maven/"
+
 libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.4-SNAPSHOT"
 
 libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.4-SNAPSHOT"
@@ -22,3 +24,4 @@ libraryDependencies += "org.msgpack" % "msgpack" % "0.6.11"
 
 libraryDependencies += "org.scalatest" % "scalatest_2.10" % "2.2.1" % "test"
 
+libraryDependencies += "berkeleydb" % "je" % "3.2.76"
