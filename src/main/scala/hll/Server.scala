@@ -14,6 +14,8 @@ class Server extends Actor {
   import Tcp._
   import context.system
   
+  val database = new DatabaseHelper("main")
+  
   val setGroup = context.actorOf(Props[SetGroup])
   
   IO(Tcp) ! Bind(self, new InetSocketAddress("localhost", 30303))
@@ -22,9 +24,9 @@ class Server extends Actor {
     case Bound(localAddress) => {}
     case CommandFailed(_: Bind) => context.parent ! Server.BindFailed
     case Connected(remote, local) => {
-      val handler = context.actorOf(Props(classOf[Connection], sender, setGroup))
+      val handler = context.actorOf(Props(classOf[Connection], sender, setGroup, database))
       
-      sender ! Register(handler)
+      sender ! Register(handler, keepOpenOnPeerClosed = true)
     }
   }
 }

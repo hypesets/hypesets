@@ -12,8 +12,10 @@ import com.twitter.algebird.HLL
 import akka.actor.Actor
 
 object Estimator {
-  case class Estimation(key: String, value: Double)
-  case object Done
+  trait Result
+  
+  case class Estimation(key: String, value: Double) extends Result
+  case object Done extends Result
   case object Iterate
 }
 

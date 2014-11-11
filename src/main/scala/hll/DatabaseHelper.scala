@@ -12,6 +12,7 @@ import com.sleepycat.je.LockMode
 class DatabaseHelper(databaseName: String) {
   val envConfig = new EnvironmentConfig();
   envConfig.setAllowCreate(true);
+  envConfig.setTransactional(false)
   val dbEnvironment = new Environment(new File("db"), envConfig)
 
   // Open the database. Create it if it does not already exist.

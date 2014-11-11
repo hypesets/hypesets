@@ -4,30 +4,42 @@ import akka.actor.Actor
 import akka.io.Tcp
 import akka.util.ByteString
 import akka.actor.ActorRef
+import akka.actor.Props
+import akka.io.Tcp.Event
 
-class Connection(tcp: ActorRef, setGroup: ActorRef) extends Actor {
+object Connection {
+  case object Ack extends Event
+}
 
-  case class Command(cmd: String)
+class Connection(tcp: ActorRef, setGroup: ActorRef, database: DatabaseHelper) extends Actor {
 
   import Tcp._
 
   var partialCommand: String = ""
+  val adder = context.actorOf(Props(classOf[Adder], database.getDatabase, self))
+  var estimationBuffer = new StringBuilder
+  var estimator: Option[ActorRef] = None
+  var acknowledged = true
 
   def command(data: String) = {
     val line = data.trim
     val commandArray = line.split(" ")
 
-    def estimate(pattern: String) = {
-      setGroup ! SetGroup.Estimate(pattern)
-
-      context.become(estimating)
+    def estimate(start: String, stop: String) = {
+      val actor = context.actorOf(Props(classOf[Estimator], database.getDatabase, self, start, stop))
+      estimator = Some(actor)
+      
+      actor ! Estimator.Iterate
     }
     
     commandArray match {
-      case Array("ADD", setKey, element) => setGroup ! SetGroup.Add(setKey, element)
-      case Array("ESTIMATE") => estimate(".+")
-      case Array("ESTIMATE", pattern) => estimate(pattern)
-      case other => tcp ! Write(ByteString(s"FAILURE: unknown command '$line'\n\n"))
+      case Array("ADD", setKey, element) => {
+        adder ! Adder.Add(setKey, element)
+      }
+      case Array("ESTIMATE", start, stop) if estimator == None => estimate(start, stop)
+      case other => {
+        tcp ! Write(ByteString(s"FAILURE: unknown command '$line'\n\n"))
+      }
     }
   }
 
@@ -45,24 +57,42 @@ class Connection(tcp: ActorRef, setGroup: ActorRef) extends Actor {
     }
   }
 
-  def estimating: Actor.Receive = {
-    case SetGroup.EstimationResult(result) => {
-      val response = new StringBuilder("SUCCESS\n")
+  def sendEstimation = if (acknowledged) {
+    val data = estimationBuffer.toString
+    
+    if (data.size > 0) {
+      tcp ! Write(ByteString(estimationBuffer.toString), Connection.Ack)
 
-      for ((setKey, count) <- result) {
-        val convertedCount = count.toLong
-        response.append(s"$setKey,$convertedCount\n")
-      }
-      response.append("\n")
-
-      context.become(listening)
-      tcp ! Write(ByteString(response.toString))
+      estimationBuffer = new StringBuilder
+      acknowledged = false
     }
-    case PeerClosed => context stop self
   }
 
   def listening: Actor.Receive = {
     case Received(data) => processInput(data)
+    case Adder.Done => {
+      estimationBuffer.append("DONE\n")
+      
+      sendEstimation
+    }
+    case Connection.Ack => {
+      acknowledged = true
+      
+      sendEstimation
+    }
+    case Estimator.Estimation(key, value) => {
+      estimationBuffer.append(key)
+      estimationBuffer.append(',')
+      estimationBuffer.append(value.toInt)
+      estimationBuffer.append('\n')
+      
+      sendEstimation
+    }
+    case Estimator.Done => {
+      estimationBuffer.append("DONE\n")
+      
+      sendEstimation
+    }
     case PeerClosed => context stop self
   }
 
