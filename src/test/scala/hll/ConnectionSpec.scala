@@ -12,11 +12,12 @@ import akka.util.ByteString
 import akka.io.Tcp.Write
 import akka.actor.ActorRef
 import akka.actor.ActorRefFactory
+import com.typesafe.config.ConfigFactory
 
 class ConnectionSpec(_system: ActorSystem) extends TestKit(_system) with ImplicitSender
   with WordSpecLike with Matchers with BeforeAndAfterAll {
-
-  def this() = this(ActorSystem("MySpec"))
+  
+  def this() = this(ActorSystem("MySpec", ConfigFactory.load(Configuration.systemDefault)))
 
   override def afterAll {
     TestKit.shutdownActorSystem(system)

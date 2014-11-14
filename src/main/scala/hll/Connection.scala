@@ -26,7 +26,7 @@ class Connection(tcp: ActorRef, setGroup: ActorRef, database: DatabaseHelper) ex
     val commandArray = line.split(" ")
 
     def estimate(start: String, stop: String) = {
-      val actor = context.actorOf(Props(classOf[Estimator], database.getDatabase, self, start, stop))
+      val actor = context.actorOf(Props(classOf[Estimator], database.getDatabase, self, start, stop).withDispatcher("cursor-traverse-dispatcher"))
       estimator = Some(actor)
       
       actor ! Estimator.Iterate
