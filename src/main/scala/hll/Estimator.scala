@@ -39,6 +39,8 @@ class Estimator(database: Database, recipient: ActorRef, start: String, stop: St
     cursor.close
 
     recipient ! Estimator.Done
+    
+    context stop self
   }
 
   def iterate {

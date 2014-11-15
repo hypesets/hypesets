@@ -49,7 +49,7 @@ class ConnectionSpec(_system: ActorSystem) extends TestKit(_system) with Implici
 
     connection ! Tcp.Received(ByteString("UNKNOWN\n"))
 
-    expectMsg(Write(ByteString("FAILURE: unknown command 'UNKNOWN'\n\n")))
+    expectMsg(Write(ByteString("FAILURE: unknown command 'UNKNOWN'\nDONE\n")))
   }
 
   "estimates all sets" in {

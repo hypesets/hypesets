@@ -38,7 +38,7 @@ class Connection(tcp: ActorRef, setGroup: ActorRef, database: DatabaseHelper) ex
       }
       case Array("ESTIMATE", start, stop) if estimator == None => estimate(start, stop)
       case other => {
-        tcp ! Write(ByteString(s"FAILURE: unknown command '$line'\n\n"))
+        tcp ! Write(ByteString(s"FAILURE: unknown command '$line'\nDONE\n"))
       }
     }
   }
@@ -89,8 +89,9 @@ class Connection(tcp: ActorRef, setGroup: ActorRef, database: DatabaseHelper) ex
       sendEstimation
     }
     case Estimator.Done => {
-      estimationBuffer.append("DONE\n")
+      estimator = None
       
+      estimationBuffer.append("DONE\n")
       sendEstimation
     }
     case PeerClosed => context stop self
